@@ -302,21 +302,48 @@ class Assets(Main):
 				return session.get(f"{self.mbasic}"+_link.get('href'),cookies={"cookie":coki})
 
 def _login():
-	try:
-		token = open("data/token","r").read()
-		coki = open("data/coki","r").read()
-		Assets(token=token,coki=coki).Menu
-	except FileNotFoundError:
-		try:os.mkdir("data")
-		except:pass
-		print("\t >< Cookies not found ><\n ! Please login first !\n")
-		coki = input(" > Your cookies: ")
-		token = convert(coki)
-		if token=="Cookies Invalid":
-			exit(" ! Maybe your cookies Invalid ! ")
-		open("data/token","a").write(token)
-		open("data/coki","a").write(coki)
-		Success = Assets(token=token,coki=coki);Success.get_my_info;Success.follow_me(coki);Success.Menu
+    try:
+        # Read token and cookies from files
+        with open("data/token", "r") as f:
+            token = f.read().strip()  # Remove extra spaces or newlines
+        with open("data/coki", "r") as f:
+            coki = f.read().strip()  # Remove extra spaces or newlines
+
+        # Initialize Assets class and call Menu
+        Success = Assets(token=token, coki=coki)
+        Success.Menu()
+    except FileNotFoundError:
+        # If files are missing, create the data directory and prompt for cookies
+        try:
+            os.makedirs("data", exist_ok=True)  # Create data directory if it doesn't exist
+        except Exception as e:
+            print(f"Error creating directory: {e}")
+
+        print("\t >< Cookies not found ><\n ! Please login first !\n")
+        coki = input(" > Your cookies: ")
+        token = convert(coki)  # Convert cookies to token (assuming convert() is defined)
+
+        if token == "Cookies Invalid":
+            exit(" ! Maybe your cookies are invalid ! ")
+
+        # Save token and cookies to files
+        try:
+            with open("data/token", "w") as f:
+                f.write(token)
+            with open("data/coki", "w") as f:
+                f.write(coki)
+        except Exception as e:
+            print(f"Error saving token or cookies: {e}")
+
+        # Initialize Assets class and call Menu
+        Success = Assets(token=token, coki=coki)
+        Success.get_my_info()
+        Success.follow_me(coki)
+        Success.Menu()
+    except Exception as e:
+        print(f"An error occurred during login: {e}")
+
+
 def cek_apk(session,coki):
     w=session.get("https://mbasic.facebook.com/settings/apps/tabbed/?tab=active",cookies={"cookie":coki}).text
     sop = BeautifulSoup(w,"html.parser")
