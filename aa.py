@@ -109,8 +109,8 @@ class Main:
         print(f"[•] Name   : {info['name']}")
         print(f"[•] ID     : {info['id']}")
         print("---------------------------------------------------------------------")
-        print(f'{N}[{O}1{N}] CRACK ID PUBLIC')
-        print(f'{N}[{O}2{N}] CRACK ID FOLLOWERS')
+        print(f'{N}[{O}1{N}] CLONE ID FROM FRIENDS')
+        print(f'{N}[{O}2{N}] CLONE ID FROM FOLLOWERS')
         print(f'{N}[{O}3{N}] CHECK RESULT OK/CP')
         print(f'{N}[{O}0{N}] LOG OUT, DELETE TOKEN')
         print("---------------------------------------------------------------------")
@@ -176,7 +176,7 @@ class Main:
             print(f"{M}Error fetching {chose} data: {e}{N}")
 
     def validate(self):
-        print("\n >< Crack Running, (CTRL + C) to stop ><\n")
+        print("\n >< Cloning Running, (CTRL + C) to stop ><\n")
         with ThreadPoolExecutor(max_workers=35) as executor:
             for x in self.data_id:
                 name, id = x.split('><')
