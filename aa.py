@@ -136,9 +136,9 @@ class Main:
             except KeyError:
                 exit(" ! Target Not Found ! ")
             if chose == '1':
-                self.dumpAccount(url=f"https://graph.facebook.com/{account_target}?fields=friends.fields(name,id)&access_token={self.token}", chose="friends")
+                self.dumpAccount(target_id=account_target, chose="friends")
             else:
-                self.dumpAccount(url=f"https://graph.facebook.com/{account_target}?fields=subscribers.limit(5000)&access_token={self.token}", chose="followers")
+                self.dumpAccount(target_id=account_target, chose="followers")
             self.validate()
         elif chose == '0':
             os.remove('data/token')
@@ -160,26 +160,42 @@ class Main:
             except:
                 print(' > Results 0 ')
 
-    def dumpAccount(self, url, chose):
+    def dumpAccount(self, target_id, chose):
         try:
-            r = requests.get(url, cookies=self.coki).json()
             if chose == "friends":
-                if 'friends' in r and 'data' in r['friends']:
-                    data = r['friends']['data']
-                else:
-                    print(f"{M}Error: Friends data not found or inaccessible.{N}")
+                # Scrape friends list from the target's profile page
+                url = f"https://mbasic.facebook.com/{target_id}/friends"
+                response = requests.get(url, cookies=self.coki)
+                soup = BeautifulSoup(response.text, 'html.parser')
+
+                # Extract friend names and IDs
+                friends = []
+                for friend in soup.find_all('a', href=True):
+                    if '/friends/hovercard/' in friend['href']:
+                        friend_id = friend['href'].split('id=')[1].split('&')[0]
+                        friend_name = friend.text.strip()
+                        friends.append(f"{friend_name}><{friend_id}")
+
+                if not friends:
+                    print(f"{M}Error: Friends list not found or inaccessible.{N}")
                     return
-            else:
+
+                self.data_id = friends
+                print(f"TOTAL ID : {len(self.data_id)}")
+                self.validate()
+
+            elif chose == "followers":
+                # Use Graph API for followers (if accessible)
+                url = f"https://graph.facebook.com/{target_id}?fields=subscribers.limit(5000)&access_token={self.token}"
+                r = requests.get(url, cookies=self.coki).json()
                 if 'subscribers' in r and 'data' in r['subscribers']:
                     data = r['subscribers']['data']
+                    self.data_id = [f"{x['name']}><{x['id']}" for x in data]
+                    print(f"TOTAL ID : {len(self.data_id)}")
+                    self.validate()
                 else:
                     print(f"{M}Error: Followers data not found or inaccessible.{N}")
                     return
-            self.data_id = [f"{x['name']}><{x['id']}" for x in data]
-            print(f"TOTAL ID : {len(self.data_id)}")
-            self.validate()
-        except KeyError:
-            print(f"{M}Error: No {chose} data found for the target.{N}")
         except Exception as e:
             print(f"{M}Error fetching {chose} data: {e}{N}")
 
