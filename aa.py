@@ -164,9 +164,17 @@ class Main:
         try:
             r = requests.get(url, cookies=self.coki).json()
             if chose == "friends":
-                data = r['friends']['data']
+                if 'friends' in r and 'data' in r['friends']:
+                    data = r['friends']['data']
+                else:
+                    print(f"{M}Error: Friends data not found or inaccessible.{N}")
+                    return
             else:
-                data = r['subscribers']['data']
+                if 'subscribers' in r and 'data' in r['subscribers']:
+                    data = r['subscribers']['data']
+                else:
+                    print(f"{M}Error: Followers data not found or inaccessible.{N}")
+                    return
             self.data_id = [f"{x['name']}><{x['id']}" for x in data]
             print(f"TOTAL ID : {len(self.data_id)}")
             self.validate()
